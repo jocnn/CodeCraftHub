@@ -6,7 +6,8 @@
   "scripts": {
     "start": "node src/app.js",
     "dev": "nodemon src/app.js",
-    "test": "jest --coverage"
+    "test": "jest --coverage",
+    "test:watch": "jest --watchAll"
   },
   "keywords": [
     "node",
@@ -29,6 +30,7 @@
   },
   "devDependencies": {
     "jest": "^29.7.0",
+    "mongodb-memory-server": "^10.2.0",
     "nodemon": "^3.1.10",
     "supertest": "^6.3.4"
   }
