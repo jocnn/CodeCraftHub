@@ -1,9 +1,9 @@
-const User = require("../models/userModel");
-const bcrypt = require("bcryptjs");
+const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
+const User = require("../models/userModel");
 
 // Register a new user
-const registerUser = async (req, res) => {
+exports.registerUser = async (req, res) => {
   const { username, email, password } = req.body;
 
   try {
@@ -17,21 +17,21 @@ const registerUser = async (req, res) => {
     await newUser.save();
     res.status(201).json({ message: "User created successfully" });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: `Registration failed: ${error.message}` });
   }
 };
 
 // Login user
-const loginUser = async (req, res) => {
+exports.loginUser = async (req, res) => {
   const { email, password } = req.body;
 
   try {
     const user = await User.findOne({ email });
-    if (!user) return res.status(404).json({ message: "User not found." });
+    if (!user) return res.status(404).json({ error: "User not found." });
 
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch)
-      return res.status(401).json({ message: "Invalid credentials" });
+      return res.status(401).json({ error: "Invalid credentials" });
 
     const token = jwt.sign(
       { id: user._id },
@@ -42,10 +42,6 @@ const loginUser = async (req, res) => {
     );
     res.status(200).json({ token });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: `Login failed: ${error.message}` });
   }
 };
-
-// Add more user-related functions (e.g., get user, update user, etc.)
-
-module.exports = { registerUser, loginUser };
