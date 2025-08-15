@@ -1,27 +1,66 @@
+/**
+ * Módulo de controladores de usuario
+ * @module controllers/userController
+ * @requires ../models/userModel
+ * @requires bcrypt
+ * @requires jsonwebtoken
+ */
+
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const User = require("../models/userModel");
 
-// Register a new user
+/**
+ * Registra un nuevo usuario
+ * @async
+ * @function registerUser
+ * @param {Object} req - Objeto de solicitud Express
+ * @param {string} req.body.username - Nombre de usuario
+ * @param {string} req.body.email - Email del usuario
+ * @param {string} req.body.password - Contraseña
+ * @param {Object} res - Objeto de respuesta Express
+ * @returns {Promise<void>} 
+ * @throws {400} Si el email o username ya existen
+ * @throws {500} Si ocurre un error en el servidor
+ */
 exports.registerUser = async (req, res) => {
   const { username, email, password } = req.body;
 
   try {
-    const existingUser = await User.findOne({ email });
+    // Verificar si el usuario ya existe primero
+    const existingUser = await User.findOne({
+      $or: [{ email }, { username }],
+    });
+
     if (existingUser) {
-      return res.status(400).json({ message: "User already exists" });
+      return res.status(400).json({
+        error: "Email or username already exists",
+      });
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
     const newUser = new User({ username, email, password: hashedPassword });
     await newUser.save();
-    res.status(201).json({ message: "User created successfully" });
+    res.status(201).json({ message: "User registered successfully" });
   } catch (error) {
-    res.status(500).json({ error: `Registration failed: ${error.message}` });
+    // Mejor manejo de errores de duplicado
+    if (error.code === 11000) {
+      return res.status(400).json({
+        error: "Email or username already exists",
+      });
+    }
+    res.status(500).json({ error: "Registration failed." });
   }
 };
 
-// Login user
+/**
+ * Autentica a un usuario existente
+ * @async
+ * @function loginUser
+ * @param {Object} req - Objeto de solicitud Express
+ * @param {Object} res - Objeto de respuesta Express
+ * @returns {Promise<void>} No retorna valor, pero envía una respuesta JSON con el token JWT
+ */
 exports.loginUser = async (req, res) => {
   const { email, password } = req.body;
 
@@ -30,8 +69,7 @@ exports.loginUser = async (req, res) => {
     if (!user) return res.status(404).json({ error: "User not found." });
 
     const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch)
-      return res.status(401).json({ error: "Invalid credentials" });
+    if (!isMatch) return res.status(401).json({ error: "Invalid credentials" });
 
     const token = jwt.sign(
       { id: user._id },
