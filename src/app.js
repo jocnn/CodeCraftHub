@@ -1,15 +1,14 @@
-const express = require("express");
+require("dotenv").config();
 const connectDB = require("./config/db");
+const initServer = require("./config/server");
 const userRoutes = require("./routes/userRoutes");
-const dotenv = require("dotenv");
+const errorHandler = require("./utils/errorHandler");
 
-dotenv.config();
-
-const app = express();
-app.use(express.json());
-
+const app = initServer();
 connectDB();
 
 app.use("/api/users", userRoutes);
+app.use(errorHandler);
 
-module.exports = app;
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
