@@ -23,10 +23,25 @@ const User = require("../models/userModel");
  * @throws {400} Si el email o username ya existen
  * @throws {500} Si ocurre un error en el servidor
  */
-exports.registerUser = async (req, res) => {
+exports.registerUser = async (req, res, next) => {
   const { username, email, password } = req.body;
 
   try {
+    // Validación manual antes de guardar
+    if (!username || !email || !password) {
+      return res.status(400).json({ error: "All fields are required" });
+    }
+
+    if (username.length < 3) {
+      return res
+        .status(400)
+        .json({ error: "Username must be at least 3 characters" });
+    }
+
+    if (!/^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/.test(email)) {
+      return res.status(400).json({ error: "Invalid email format" });
+    }
+
     // Verificar si el usuario ya existe primero
     const existingUser = await User.findOne({
       $or: [{ email }, { username }],
@@ -43,13 +58,7 @@ exports.registerUser = async (req, res) => {
     await newUser.save();
     res.status(201).json({ message: "User registered successfully" });
   } catch (error) {
-    // Mejor manejo de errores de duplicado
-    if (error.code === 11000) {
-      return res.status(400).json({
-        error: "Email or username already exists",
-      });
-    }
-    res.status(500).json({ error: "Registration failed." });
+    next(error); // Pasar el error al errorHandler
   }
 };
 
